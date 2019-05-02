@@ -74,6 +74,17 @@ USB_ClassInfo_CDC_Device_t VirtualSerial_CDC_Interface =
 			},
 	};
 
+static bool flow_enabled = false;
+static bool txflow = false;
+static bool rxflow = false;
+
+static bool
+in_ready(void)
+{
+	Endpoint_SelectEndpoint(VirtualSerial_CDC_Interface.Config.DataINEndpointNumber);
+	return Endpoint_IsReadWriteAllowed();
+}
+
 /** Main program entry point. This routine contains the overall program flow, including initial
  *  setup of all components and the main program loop.
  */
@@ -122,11 +133,25 @@ int main(void)
 			  LEDs_TurnOffLEDs(LEDMASK_RX);
 		}
 
-		/* Load the next byte from the USART transmit buffer into the USART */
-		if (!(RingBuffer_IsEmpty(&USBtoUSART_Buffer))) {
-		  Serial_TxByte(RingBuffer_Remove(&USBtoUSART_Buffer));
+		if (flow_enabled) {
+			if (rxflow) {
+				if (in_ready()) {
+					Serial_TxByte('q' & 0x1f);
+					rxflow = false;
+				}
+			} else {
+				if (!in_ready()) {
+					Serial_TxByte('s' & 0x1f);
+					rxflow = true;
+				}
+			}
+		}
 
-		  	LEDs_TurnOnLEDs(LEDMASK_RX);
+		/* Load the next byte from the USART transmit buffer into the USART */
+		if (!(RingBuffer_IsEmpty(&USBtoUSART_Buffer)) && !txflow) {
+			Serial_TxByte(RingBuffer_Remove(&USBtoUSART_Buffer));
+
+			LEDs_TurnOnLEDs(LEDMASK_RX);
 			PulseMSRemaining.RxLEDPulse = TX_RX_LED_PULSE_MS;
 		}
 
@@ -206,6 +231,10 @@ void EVENT_CDC_Device_LineEncodingChanged(USB_ClassInfo_CDC_Device_t* const CDCI
 	UCSR1A = 0;
 	UCSR1C = 0;
 
+	flow_enabled = CDCInterfaceInfo->State.LineEncoding.BaudRateBPS < 57600;
+	txflow = false;
+	rxflow = false;
+
 	/* Special case 57600 baud for compatibility with the ATmega328 bootloader. */
 	UBRR1  = (CDCInterfaceInfo->State.LineEncoding.BaudRateBPS == 57600)
 			 ? SERIAL_UBBRVAL(CDCInterfaceInfo->State.LineEncoding.BaudRateBPS)
@@ -223,8 +252,18 @@ ISR(USART1_RX_vect, ISR_BLOCK)
 {
 	uint8_t ReceivedByte = UDR1;
 
+	if (flow_enabled) {
+		switch (ReceivedByte) {
+		case 'q' & 0x1f:
+			txflow = false;
+			return;
+		case 's' & 0x1f:
+			txflow = true;
+			return;
+		}
+	}
 	if (USB_DeviceState == DEVICE_STATE_Configured)
-	  RingBuffer_Insert(&USARTtoUSB_Buffer, ReceivedByte);
+		RingBuffer_Insert(&USARTtoUSB_Buffer, ReceivedByte);
 }
 
 /** Event handler for the CDC Class driver Host-to-Device Line Encoding Changed event.

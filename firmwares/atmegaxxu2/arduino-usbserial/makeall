@@ -1,0 +1,10 @@
+#!/bin/sh
+#
+# Arduino Mega Rev3
+#
+make MCU=atmega16u2 ARDUINO_MODEL_PID=0x0010 TARGET=Arduino-usbserial-atmega16u2-Mega2560-Rev3 clean
+make MCU=atmega16u2 ARDUINO_MODEL_PID=0x0010 TARGET=Arduino-usbserial-atmega16u2-Mega2560-Rev3
+#
+# Arduino Uno Rev3
+make MCU=atmega16u2 ARDUINO_MODEL_PID=0x0001 TARGET=Arduino-usbserial-atmega16u2-Uno-Rev3 clean
+make MCU=atmega16u2 ARDUINO_MODEL_PID=0x0001 TARGET=Arduino-usbserial-atmega16u2-Uno-Rev3

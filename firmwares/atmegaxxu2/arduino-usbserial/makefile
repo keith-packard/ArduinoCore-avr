@@ -70,9 +70,9 @@ MCU_DFU = at90usb82
 # Specify the Arduino model using the assigned PID.  This is used by Descriptors.c
 #   to set PID and product descriptor string
 # Uno PID:
-#ARDUINO_MODEL_PID = 0x0001
+ARDUINO_MODEL_PID = 0x0001
 # Mega 2560 PID:
-ARDUINO_MODEL_PID = 0x0010
+#ARDUINO_MODEL_PID = 0x0010
 
 
 # Target board (see library "Board Types" documentation, NONE for projects not requiring
@@ -114,7 +114,8 @@ FORMAT = ihex
 
 
 # Target file name (without extension).
-TARGET = Arduino-usbserial
+SOURCE = Arduino-usbserial
+TARGET = $(SOURCE)
 
 
 # Object files directory
@@ -142,7 +143,7 @@ include $(LUFA_PATH)/LUFA/makefile
 
 
 # List C source files here. (C dependencies are automatically generated.)
-SRC = $(TARGET).c                                                 \
+SRC = $(SOURCE).c                                                 \
 	  Descriptors.c                                               \
 	  $(LUFA_SRC_USB)                                             \
 	  $(LUFA_SRC_USBCLASS)										  \
@@ -507,7 +508,7 @@ hex: $(TARGET).hex
 eep: $(TARGET).eep
 lss: $(TARGET).lss
 sym: $(TARGET).sym
-asm: $(TARGET).s
+asm: $(SOURCE).s
 LIBNAME=lib$(TARGET).a
 lib: $(LIBNAME)
 
